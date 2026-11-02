@@ -1,0 +1,12 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Audit a Bloom-filter memory of tried actions for false positives and corruption"
+summary: "A web agent remembers the actions it already tried in a Bloom filter. Built from a seed, each memory pairs that filter with the exact log it was written from, and on some seeds a few bits were lost. The agent checks every candidate action against both and reports where the filter is wrong. The verifier rebuilds the filter with the same fixed hash functions and checks the report."
+highlights:
+  - "Every memory is rebuilt exactly from its seed, so any run can be reproduced"
+  - "The verifier recomputes every hash itself: no model judges the audit"
+  - "Catches corruption through false negatives, which a sound Bloom filter never has"
+steps:
+  - "Give a seed"
+  - "The agent queries the filter and the exact log for every candidate action"
+  - "It reports the false positives, the false negatives and whether the filter is corrupted"
+  - "The verifier rebuilds the filter and shows the verdict"

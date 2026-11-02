@@ -1,0 +1,39 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: bloom-memory-auditor
+name: Bloom-Filter Memory Auditor
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+
+# One entry per contract.Tool; its input and output classes are contract.TOOLS's.
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  list_candidates:
+    description: List the action keys to audit for a seed's already-tried memory, with the Bloom filter's size and hash count
+  bloom_query:
+    description: Ask the Bloom filter about up to 40 action keys at once, returning each key's bit positions, which are set, and whether it counts as tried
+  exact_lookup:
+    description: Ask the exact log whether each of up to 40 action keys was really tried
+  audit_memory:
+    description: The whole log, the filter's bits and their true audit; the reference, never shown to the agent
+
+# One entry per contract.Task; its input and output classes are contract.TASKS's.
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  audit-bloom-memory:
+    description: Find the false positives and false negatives of a Bloom-filter already-tried memory
+    runner: agent
+    tools: [list_candidates, bloom_query, exact_lookup]
+    reference: audit_memory
+    instructions: |-
+      Call list_candidates with the seed. Then call bloom_query once and exact_lookup once, each with the seed and the whole list of candidate keys (there are at most 40).
+      A false positive is a candidate whose bloom_query member is true while exact_lookup tried is false. A false negative is a candidate whose bloom_query member is false while exact_lookup tried is true; a sound Bloom filter never has one, so it means the filter is corrupted.
+      Submit false_positives and false_negatives, each the matching candidate keys exactly as listed, each key once, and corrupted true exactly when false_negatives is not empty. Check every candidate: a missed key fails the audit.
